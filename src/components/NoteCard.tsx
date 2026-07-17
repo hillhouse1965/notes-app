@@ -6,7 +6,7 @@ import { NoteForm } from "@/components/NoteForm";
 
 interface NoteCardProps {
   note: Note;
-  onUpdate: (id: string, input: { title: string; content: string }) => boolean;
+  onUpdate: (id: string, input: { title: string; content: string }) => boolean | Promise<boolean>;
   onDelete: (id: string) => void;
 }
 
@@ -25,8 +25,8 @@ export function NoteCard({ note, onUpdate, onDelete }: NoteCardProps) {
       <NoteForm
         submitLabel="Save changes"
         initialValues={{ title: note.title, content: note.content }}
-        onSubmit={(input) => {
-          const saved = onUpdate(note.id, input);
+        onSubmit={async (input) => {
+          const saved = await onUpdate(note.id, input);
           if (saved) setIsEditing(false);
           return saved;
         }}

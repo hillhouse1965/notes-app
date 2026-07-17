@@ -4,39 +4,28 @@ import { useEffect, useMemo, useState } from "react";
 import type { Note, NoteInput } from "@/types/note";
 import { isNoteValid } from "@/types/note";
 
-const STORAGE_KEY = "notes-app-notes";
-
-function loadNotes(): Note[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Note[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+async function fetchNotes(): Promise<Note[]> {
+  const response = await fetch("/api/notes");
+  if (!response.ok) {
+    throw new Error("Failed to load notes");
   }
-}
-
-function saveNotes(notes: Note[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  return response.json();
 }
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setNotes(loadNotes());
-    setHydrated(true);
+    fetchNotes()
+      .then(setNotes)
+      .catch(() => {
+        setError("Could not load notes. Check that the database is connected.");
+      })
+      .finally(() => setHydrated(true));
   }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveNotes(notes);
-  }, [notes, hydrated]);
 
   const filteredNotes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -49,40 +38,65 @@ export function useNotes() {
     );
   }, [notes, searchQuery]);
 
-  const addNote = (input: NoteInput) => {
+  const addNote = async (input: NoteInput): Promise<boolean> => {
     if (!isNoteValid(input)) return false;
 
-    const note: Note = {
-      id: crypto.randomUUID(),
-      title: input.title.trim(),
-      content: input.content.trim(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
 
-    setNotes((current) => [note, ...current]);
-    return true;
+      if (!response.ok) return false;
+
+      const note = (await response.json()) as Note;
+      setNotes((current) => [note, ...current]);
+      setError(null);
+      return true;
+    } catch {
+      setError("Could not save the note. Please try again.");
+      return false;
+    }
   };
 
-  const updateNote = (id: string, input: NoteInput) => {
+  const updateNote = async (id: string, input: NoteInput): Promise<boolean> => {
     if (!isNoteValid(input)) return false;
 
-    setNotes((current) =>
-      current.map((note) =>
-        note.id === id
-          ? {
-              ...note,
-              title: input.title.trim(),
-              content: input.content.trim(),
-              updatedAt: new Date().toISOString(),
-            }
-          : note,
-      ),
-    );
-    return true;
+    try {
+      const response = await fetch(`/api/notes/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) return false;
+
+      const note = (await response.json()) as Note;
+      setNotes((current) =>
+        current.map((existing) => (existing.id === id ? note : existing)),
+      );
+      setError(null);
+      return true;
+    } catch {
+      setError("Could not update the note. Please try again.");
+      return false;
+    }
   };
 
-  const deleteNote = (id: string) => {
-    setNotes((current) => current.filter((note) => note.id !== id));
+  const deleteNote = async (id: string): Promise<void> => {
+    try {
+      const response = await fetch(`/api/notes/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) return;
+
+      setNotes((current) => current.filter((note) => note.id !== id));
+      setError(null);
+    } catch {
+      setError("Could not delete the note. Please try again.");
+    }
   };
 
   return {
@@ -94,5 +108,6 @@ export function useNotes() {
     updateNote,
     deleteNote,
     hydrated,
+    error,
   };
 }

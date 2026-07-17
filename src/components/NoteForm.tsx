@@ -7,7 +7,7 @@ import { isNoteValid } from "@/types/note";
 interface NoteFormProps {
   submitLabel: string;
   initialValues?: NoteInput;
-  onSubmit: (input: NoteInput) => boolean;
+  onSubmit: (input: NoteInput) => boolean | Promise<boolean>;
   onCancel?: () => void;
 }
 
@@ -22,8 +22,9 @@ export function NoteForm({
   const [title, setTitle] = useState(initialValues.title);
   const [content, setContent] = useState(initialValues.content);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const input = { title, content };
@@ -32,7 +33,10 @@ export function NoteForm({
       return;
     }
 
-    const saved = onSubmit(input);
+    setIsSubmitting(true);
+    const saved = await onSubmit(input);
+    setIsSubmitting(false);
+
     if (!saved) return;
 
     setError("");
@@ -83,9 +87,10 @@ export function NoteForm({
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500"
+          disabled={isSubmitting}
+          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitLabel}
+          {isSubmitting ? "Saving..." : submitLabel}
         </button>
         {onCancel ? (
           <button

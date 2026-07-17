@@ -16,6 +16,7 @@ export function NotesApp() {
     updateNote,
     deleteNote,
     hydrated,
+    error,
   } = useNotes();
 
   return (
@@ -30,13 +31,22 @@ export function NotesApp() {
               Your ideas, organised
             </h1>
             <p className="mt-2 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
-              Create, edit, and search notes. Everything is saved locally in your browser for now.
+              Create, edit, and search notes. Saved to a shared database — visible on every device.
             </p>
           </div>
           <ThemeToggle />
         </header>
 
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
+
+        {error ? (
+          <div
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : null}
 
         <section aria-label="Create note">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
