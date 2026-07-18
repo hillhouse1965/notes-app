@@ -3,21 +3,26 @@ import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
-const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
-const githubClientId =
-  process.env.AUTH_GITHUB_ID ?? process.env.GITHUB_ID ?? process.env.GITHUB_CLIENT_ID;
-const githubClientSecret =
-  process.env.AUTH_GITHUB_SECRET ??
-  process.env.GITHUB_SECRET ??
-  process.env.GITHUB_CLIENT_SECRET;
+function requiredEnv(name: string, value: string | undefined): string {
+  if (!value || value.trim().length === 0) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  return value.trim();
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  secret: authSecret,
+  secret: requiredEnv(
+    "AUTH_SECRET",
+    process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  ),
   providers: [
     GitHub({
-      clientId: githubClientId,
-      clientSecret: githubClientSecret,
+      clientId: requiredEnv("AUTH_GITHUB_ID", process.env.AUTH_GITHUB_ID),
+      clientSecret: requiredEnv(
+        "AUTH_GITHUB_SECRET",
+        process.env.AUTH_GITHUB_SECRET,
+      ),
     }),
   ],
   trustHost: true,
