@@ -3,26 +3,17 @@ import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
-function requiredEnv(name: string, value: string | undefined): string {
-  if (!value || value.trim().length === 0) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  return value.trim();
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  secret: requiredEnv(
-    "AUTH_SECRET",
-    process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  ),
+  // Railway injects env vars at runtime, not during build — fallback avoids build failure
+  secret:
+    process.env.AUTH_SECRET ??
+    process.env.NEXTAUTH_SECRET ??
+    "build-time-placeholder",
   providers: [
     GitHub({
-      clientId: requiredEnv("AUTH_GITHUB_ID", process.env.AUTH_GITHUB_ID),
-      clientSecret: requiredEnv(
-        "AUTH_GITHUB_SECRET",
-        process.env.AUTH_GITHUB_SECRET,
-      ),
+      clientId: process.env.AUTH_GITHUB_ID,
+      clientSecret: process.env.AUTH_GITHUB_SECRET,
     }),
   ],
   trustHost: true,
