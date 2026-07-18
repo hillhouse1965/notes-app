@@ -3,7 +3,7 @@
 import { NoteCard } from "@/components/NoteCard";
 import { NoteForm } from "@/components/NoteForm";
 import { SearchBar } from "@/components/SearchBar";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { useNotes } from "@/hooks/useNotes";
 
 export function NotesApp() {
@@ -31,10 +31,10 @@ export function NotesApp() {
               Your ideas, organised
             </h1>
             <p className="mt-2 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
-              Create, edit, and search notes. Saved to a shared database — visible on every device.
+              Your private notes, synced across every device you sign in on.
             </p>
           </div>
-          <ThemeToggle />
+          <UserMenu />
         </header>
 
         <SearchBar value={searchQuery} onChange={setSearchQuery} />

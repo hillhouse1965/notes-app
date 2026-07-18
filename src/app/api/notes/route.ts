@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeNote } from "@/lib/notes-api";
+import { requireUserId } from "@/lib/session";
 import { isNoteValid } from "@/types/note";
 
 export async function GET() {
   try {
+    const userId = await requireUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const notes = await prisma.note.findMany({
+      where: { userId },
       orderBy: { updatedAt: "desc" },
     });
 
@@ -18,6 +25,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const userId = await requireUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
 
     if (!isNoteValid(body)) {
@@ -31,6 +43,7 @@ export async function POST(request: Request) {
       data: {
         title: body.title.trim(),
         content: body.content.trim(),
+        userId,
       },
     });
 

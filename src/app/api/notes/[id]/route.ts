@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeNote } from "@/lib/notes-api";
+import { requireUserId } from "@/lib/session";
 import { isNoteValid } from "@/types/note";
 
 type RouteContext = {
@@ -9,6 +10,11 @@ type RouteContext = {
 
 export async function PUT(request: Request, { params }: RouteContext) {
   try {
+    const userId = await requireUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
 
@@ -19,7 +25,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
       );
     }
 
-    const existing = await prisma.note.findUnique({ where: { id } });
+    const existing = await prisma.note.findFirst({
+      where: { id, userId },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
@@ -41,9 +49,16 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
+    const userId = await requireUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    const existing = await prisma.note.findUnique({ where: { id } });
+    const existing = await prisma.note.findFirst({
+      where: { id, userId },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
